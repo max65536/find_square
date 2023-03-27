@@ -14,17 +14,17 @@ from util import img_orig
 
 # 生成文字
 # 定义窗口大小
-width, height = 600, 100
+height, width  = 80, 160
 # 创建黑色背景的图像
-image = 255 * np.ones((width, height, 3), np.uint8)
+image = 255 * np.ones((height, width, 3), np.uint8)
 # 设置文本
-text = "Hello, OpenCV!"
+text = "Hello"
 # 设置字体
 font = cv2.FONT_HERSHEY_SIMPLEX
 # 设置字体大小
 font_size = 2
 # 设置字体颜色
-font_color = (255, 255, 255)
+font_color = (0, 0, 255)
 # 设置文本放置的位置
 position = (10, 50)
 
