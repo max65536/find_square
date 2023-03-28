@@ -16,9 +16,9 @@ cv2.putText(img,  text, (50,50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (b,g,r), 1, cv2.
 
 
 ## Use simsum.ttc to write Chinese.
-fontpath = "/home/liang/projects/find_square/simsun.ttc" # <== 这里是宋体路径 
+fontpath = r"/home/liang/projects/find_square/simsun.ttc" # <== 这里是宋体路径 
 # embed()
-font = ImageFont.truetype(fontpath, 32)
+font = ImageFont.truetype("simsun.ttf", 32, encoding="utf-8")
 img_pil = Image.fromarray(img)
 draw = ImageDraw.Draw(img_pil)
 draw.text((50, 80),  "端午节就要到了。。。", font = font, fill = (b, g, r, a))

@@ -4,6 +4,7 @@ from scan import scan, points_to_rectangles
 from util import get_sharp
 from IPython import embed
 import math
+from PIL import ImageFont, ImageDraw, Image
 
 def get_gray(img):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -18,6 +19,7 @@ def detect_squares(abs_substract):
     ret, gray_thresh = cv2.threshold(gray, thresh=60, maxval=255, type=cv2.THRESH_BINARY)
     new_image, points = scan(gray_thresh)
     rects = points_to_rectangles(new_image, points)
+    
     return rects
 
 def get_extent(img_gray):
@@ -102,9 +104,17 @@ def draw_rects(imgname, rects):
     cv2.imwrite("output/rects.jpg", img)   
 
 def draw_text(img, item_pairs, text_height, text_width=None, text="test"):
+    font = ImageFont.truetype("simsun.ttf", size=16, encoding="utf-8")
+    img_pil = Image.fromarray(img)
+    draw = ImageDraw.Draw(img_pil)
+    # draw.text((50, 80),  "端午节就要到了。。。", font = font, fill = (b, g, r, a))
     for name, rect in item_pairs.items():
-        cv2.rectangle(img, rect[0], rect[1], (255,0,0), 1)
-        cv2.putText(img,  text, (rect[0][0], rect[0][1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,0), 1, cv2.LINE_AA)
+        # cv2.rectangle(img, rect[0], rect[1], (255,0,0), 1)
+        # cv2.putText(img,  text, (rect[0][0], rect[0][1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,0), 1, cv2.LINE_AA)
+        draw.text((rect[0][0], rect[0][1]-text_height), name, font = font, fill = (255,0,0))
+    img = np.array(img_pil)
+    for name, rect in item_pairs.items():
+        cv2.rectangle(img, rect[0], rect[1], (255,0,0), 1)    
     cv2.imwrite("output/generate.jpg", img)
 
 
@@ -133,17 +143,21 @@ print(locations)
 # 匹配文字和框
 item_pairs = match_rect_text(rect_locs=rects, item_locs=locations, item_height=40)
 
-# cv2.imshow("sharp", sharp)
-# cv2.imshow("sharp_gray", sharp_gray)
-# cv2.imshow("img_mark", img_mark)
-# cv2.waitKey(0)
-# # embed()
-# cv2.destroyAllWindows()
+cv2.imshow("sharp", sharp)
+cv2.imshow("sharp_gray", sharp_gray)
+cv2.imshow("img_mark", img_mark)
 
+cv2.waitKey(0)
+# # embed()
+cv2.destroyAllWindows()
+
+# 输出到output
+cv2.imwrite("output/sharp.jpg", sharp)
+cv2.imwrite("output/sharp_gray.jpg", sharp_gray)
 print("rect locations:", rects)
 print("text locations:", locations)
 print(item_pairs)
-draw_text(img_orig, item_pairs=item_pairs, text_height=30)
+draw_text(img_orig, item_pairs=item_pairs, text_height=16)
 draw_rects(orig_path, rects)
 
 
