@@ -1,33 +1,49 @@
 import numpy as np
 import cv2
 from IPython import embed
-from util import abs_substract, get_sharp, img_mark, img_orig
+from util import get_sharp
 
-def is_rectangle(mat, x, y, extend=10):
+def is_rectangle(mat, x, y, extend=10, allow_skip=1):
     if mat[x][y]==0:
         return False
     max_x, max_y = mat.shape
     x_count = 1
     # count = 0
+    skip = allow_skip
     for i in range(x, x-extend, -1):
         if i<0 or mat[i][y]==0:
-            x_count -= 1
-            break
+                       
+            if skip==0:
+                x_count -= 1 
+                break
+            skip -= 1
     x_count += 1
+    skip = allow_skip
     for i in range(x, x+extend):
         if i>=max_x or mat[i][y]==0:
-            x_count -= 1
-            break        
+            
+            if skip==0:
+                x_count -= 1 
+                break
+            skip -= 1    
     y_count = 1
+    skip = allow_skip
     for j in range(y, y-extend, -1):
         if j<0 or mat[x][j]==0:
-            y_count -= 1
-            break 
-    y_count += 1       
+            
+            if skip==0:
+                y_count -= 1 
+                break
+            skip -= 1
+    y_count += 1     
+    skip = allow_skip  
     for j in range(y, y+extend):
         if j>=max_y or mat[x][j]==0:
-            y_count -= 1
-            break                
+            
+            if skip==0:
+                y_count -= 1
+                break
+            skip -= 1            
     if x_count==1 and y_count==1:
         return True
     else:
@@ -77,13 +93,14 @@ def scan(mat):
     for i in range(m):
         for j in range(n):
             if is_rectangle(mat, i, j, extend=15):
-                # print("angle: ", i, j)
+                # print("angle: ", i, j)       
                 points.append((i, j))
                 new_mat[i][j]=255
     return new_mat, points
 
 def points_to_rectangles(image, points):
     ans = []
+    last_pix = last_piy = last_pjx = last_pjy = -1
     for i in range(len(points)):
         for j in range(i+1, len(points)):
             pix, piy = points[i]
@@ -92,25 +109,31 @@ def points_to_rectangles(image, points):
                 # 这里给反回来，不知道为什么反正可以
                 image[pix, pjy]=0
                 image[pjx, piy]=0
+                if (last_pix==pix and last_pjy==pjy) or (last_pjx==pjx and last_piy==piy) or (last_pix==last_pix and last_piy==piy) or (last_pjx==pjx and last_pjy==pjy):
+                    continue
+                last_piy=piy
+                last_pix=pix
+                last_pjx=pjx
+                last_pjy=pjy
                 ans.append([(piy, pix), (pjy, pjx)])
     
     return ans
 
-img = abs_substract
-sharp = get_sharp(abs_substract)
-gray = cv2.cvtColor(sharp, cv2.COLOR_BGR2GRAY)
-ret, gray_thresh = cv2.threshold(gray, thresh=60, maxval=255, type=cv2.THRESH_BINARY)
+# img = abs_substract
+# sharp = get_sharp(abs_substract)
+# gray = cv2.cvtColor(sharp, cv2.COLOR_BGR2GRAY)
+# ret, gray_thresh = cv2.threshold(gray, thresh=60, maxval=255, type=cv2.THRESH_BINARY)
 
-new_image, points = scan(gray_thresh)
+# new_image, points = scan(gray_thresh)
 
-rects = points_to_rectangles(new_image, points)
-for rect in rects:
-    cv2.rectangle(img_orig, rect[0], rect[1], (0,0,255), 1)
+# rects = points_to_rectangles(new_image, points)
+# for rect in rects:
+#     cv2.rectangle(img_orig, rect[0], rect[1], (0,0,255), 1)
 
-# 将二值图像转换为3通道的彩色图像
-binary_img = np.zeros_like(img_orig)  # 创建与彩色图像相同大小的空白图像
-binary_img[new_image > 0] = (255, 255, 255)  # 将二值图像中白色部分的像素值设置为(255, 255, 255)，即转换为彩色图像
-points_on_image = cv2.bitwise_or(abs_substract, binary_img)
+# # 将二值图像转换为3通道的彩色图像
+# binary_img = np.zeros_like(img_orig)  # 创建与彩色图像相同大小的空白图像
+# binary_img[new_image > 0] = (255, 255, 255)  # 将二值图像中白色部分的像素值设置为(255, 255, 255)，即转换为彩色图像
+# points_on_image = cv2.bitwise_or(abs_substract, binary_img)
 
 # embed()
 

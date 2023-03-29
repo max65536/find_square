@@ -1,32 +1,26 @@
 import numpy as np
 from PIL import ImageFont, ImageDraw, Image
 import cv2
-import time
-from IPython import embed
 import os
-os.chmod('simsun.ttc', 0o755)
 
 ## Make canvas and set the color
-img = np.zeros((200,400,3),np.uint8)
-b,g,r,a = 0,255,0,0
+def gen_text_png(text, size, fill, out_dir="icons"):
+    img = np.zeros((size, size*len(text),3),np.uint8)
+    b,g,r,a = fill
 
-## Use cv2.FONT_HERSHEY_XXX to write English.
-text = time.strftime("%Y/%m/%d %H:%M:%S %Z", time.localtime()) 
-cv2.putText(img,  text, (50,50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (b,g,r), 1, cv2.LINE_AA)
+    ## Use simsum.ttc to write Chinese.
+    fontpath = r"fangzhengjunhei.ttf" # <== 这里是宋体路径 
+    # embed()
+    font = ImageFont.truetype(fontpath, size=size, encoding="utf-8")
+    img_pil = Image.fromarray(img)
+    draw = ImageDraw.Draw(img_pil)
+    draw.text((0, 0),  text, font = font, fill = fill)
+    img = np.array(img_pil)
 
+    ## Display 
+    # cv2.imshow("res", img);cv2.waitKey();cv2.destroyAllWindows()
+    cv2.imwrite(os.path.join(out_dir, "%s.png"%text), img)
 
-## Use simsum.ttc to write Chinese.
-fontpath = r"/home/liang/projects/find_square/simsun.ttc" # <== 这里是宋体路径 
-# embed()
-font = ImageFont.truetype("simsun.ttf", 32, encoding="utf-8")
-img_pil = Image.fromarray(img)
-draw = ImageDraw.Draw(img_pil)
-draw.text((50, 80),  "端午节就要到了。。。", font = font, fill = (b, g, r, a))
-img = np.array(img_pil)
-
-cv2.putText(img,  "--- by Silencer", (200,150), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (b,g,r), 1, cv2.LINE_AA)
-
-
-## Display 
-cv2.imshow("res", img);cv2.waitKey();cv2.destroyAllWindows()
-#cv2.imwrite("res.png", img)
+def gen_all_labels(labels, size=30, out_dir="icons", fill=(0,0,255,0)):
+    for label in labels:
+        gen_text_png(label, size=size, out_dir=out_dir, fill=fill)

@@ -25,29 +25,29 @@ def get_hsv_mask(image):
     return red_mask
 
 # 加载两个图像
-img_orig  = cv2.imread('nsmail.jpg')
-img_mark = cv2.imread('nsmail-1.jpg')
-img_mark_hsv = cv2.cvtColor(img_mark, cv2.COLOR_BGR2HSV)
-img_orig_hsv = cv2.cvtColor(img_orig, cv2.COLOR_BGR2HSV)
+# img_orig  = cv2.imread('nsmail.jpg')
+# img_mark = cv2.imread('nsmail-1.jpg')
+# img_mark_hsv = cv2.cvtColor(img_mark, cv2.COLOR_BGR2HSV)
+# img_orig_hsv = cv2.cvtColor(img_orig, cv2.COLOR_BGR2HSV)
 
-height, width, channels = img_mark.shape
-print('Image size: {} x {} pixels'.format(width, height))
-# 计算两个图像的差
+# height, width, channels = img_mark.shape
+# print('Image size: {} x {} pixels'.format(width, height))
+# # 计算两个图像的差
 
-abs_substract = cv2.absdiff(img_mark, img_orig)
-substract = cv2.subtract(img_mark, img_orig)
-hsv_substract = cv2.subtract(img_mark_hsv, img_orig_hsv)
-diff = get_diff(img_mark, img_orig)
-img_mark_hsv_red = get_hsv_mask(img_mark)
+# abs_substract = cv2.absdiff(img_mark, img_orig)
+# substract = cv2.subtract(img_mark, img_orig)
+# hsv_substract = cv2.subtract(img_mark_hsv, img_orig_hsv)
+# diff = get_diff(img_mark, img_orig)
+# img_mark_hsv_red = get_hsv_mask(img_mark)
 
-# threshold
-thresh, diff_thresh = cv2.threshold(diff, thresh=39, maxval=255, type=cv2.THRESH_BINARY)
-thresh, substract_thresh = cv2.threshold(substract, thresh=36, maxval=255, type=cv2.THRESH_BINARY)
-thresh, substract_softthresh = cv2.threshold(substract, thresh=20, maxval=255, type=cv2.THRESH_TOZERO)
+# # threshold
+# thresh, diff_thresh = cv2.threshold(diff, thresh=39, maxval=255, type=cv2.THRESH_BINARY)
+# thresh, substract_thresh = cv2.threshold(substract, thresh=36, maxval=255, type=cv2.THRESH_BINARY)
+# thresh, substract_softthresh = cv2.threshold(substract, thresh=20, maxval=255, type=cv2.THRESH_TOZERO)
 
-substract_hsv = cv2.cvtColor(substract, cv2.COLOR_BGR2HSV)
-substract_hsv_red = get_hsv_mask(substract)
-substract_thresh_hsv_red = get_hsv_mask(substract_thresh)
+# substract_hsv = cv2.cvtColor(substract, cv2.COLOR_BGR2HSV)
+# substract_hsv_red = get_hsv_mask(substract)
+# substract_thresh_hsv_red = get_hsv_mask(substract_thresh)
 
 def get_sharp(img):
     kernel = np.array([[-1,-1,-1],

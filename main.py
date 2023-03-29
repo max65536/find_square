@@ -5,61 +5,74 @@ from util import get_sharp
 from IPython import embed
 import math
 from PIL import ImageFont, ImageDraw, Image
+from gen_cn import gen_all_labels
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 def get_gray(img):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     return gray
 
 def get_abssub(img1, img2):
-    return cv2.absdiff(img_mark, img_orig)
+    return cv2.absdiff(img1, img2)
 
 def detect_squares(abs_substract):
     sharp = get_sharp(abs_substract)
     gray = cv2.cvtColor(sharp, cv2.COLOR_BGR2GRAY)
     ret, gray_thresh = cv2.threshold(gray, thresh=60, maxval=255, type=cv2.THRESH_BINARY)
+    cv2.imwrite("tmp/sharp_gray_thresh.jpg", gray_thresh)
     new_image, points = scan(gray_thresh)
     rects = points_to_rectangles(new_image, points)
-    
+    cv2.imwrite("tmp/vertex.jpg", new_image)
     return rects
 
 def get_extent(img_gray):
     pass
 
-def match_text(icon, target, redundent=5):
+def match_text(icon, target, threshold, redundent=5):
     # 检查模板图像是否比原始图像大
     if icon.shape[0] > target.shape[0] or icon.shape[1] > target.shape[1]:
         raise ValueError('Template image size must be smaller than source image size')
     # 使用模板匹配功能进行匹配
     result = cv2.matchTemplate(target, icon, cv2.TM_CCOEFF_NORMED)
-    cv2.imwrite("output/text_recog.jpg", result * 255)
+    cv2.imwrite("tmp/text_recog.jpg", result * 255)
+    logging.info("max recog:", result.max())
+    # cv2.imshow("text_result", result)
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
 
     # 设置匹配的阈值，这里设为0.35
-    threshold = 0.35
+    threshold = threshold
     # 找到所有匹配的位置
     locations = np.where(result >= threshold)    
-    
+    logging.info("raw text locations" + str(locations))
     new_locations = []
-    temp_loc = min_loc
-    other_loc = min_loc
+    temp_loc = [0, 0]
+    other_loc = [0, 0]
     numOfloc = 1
     # 在原始图像上用矩形标注所有匹配的位置
     h = icon.shape[0]
     w = icon.shape[1]
+    logging.info("max_val: " +  str(max_val))
+    logging.info("threshold: " +  str(threshold))
     for other_loc in zip(*locations[::-1]):
+        logging.info(str(temp_loc)+'  '+str(other_loc))
         if (temp_loc[0]+5<other_loc[0])or(temp_loc[1]+5<other_loc[1]):
             numOfloc = numOfloc + 1
             temp_loc = other_loc
             new_locations.append(other_loc)
-            cv2.rectangle(img_mark, other_loc, (other_loc[0] + w, other_loc[1] + h), (0, 0, 255), 1)
+            cv2.rectangle(img_mark, other_loc, (other_loc[0] + w, other_loc[1] + h), (255, 0, 0), 1)
     # embed()         
     # print("new_locations:", new_locations)   
+    cv2.imwrite("tmp/all_texts.jpg", img_mark)
+    logging.info("new text locations" + str(new_locations))
     return new_locations
 
-def get_text_pos(name, icon, target):
+def get_text_pos(name, icon, target, threshold):
     # 返回的是左上角的坐标
     icon_gray = get_gray(icon)
-    locations = match_text(icon=icon_gray, target=target)
+    cv2.imwrite("tmp/gray_icon.png",icon_gray)
+    locations = match_text(icon=icon_gray, target=target, threshold=threshold)
     item_locs = {}
     for i, loc in enumerate(locations):
         item_locs["%s_%d"%(name, i+1)] = loc
@@ -103,11 +116,18 @@ def draw_rects(imgname, rects):
         cv2.rectangle(img, rect[0], rect[1], (255,0,0), 1) 
     cv2.imwrite("output/rects.jpg", img)   
 
-def draw_text(img, item_pairs, text_height, text_width=None, text="test"):
+def draw_texts(imgname, item_locs):
+    pass
+    # img = cv2.imread(imgname)
+    # for loc in item_locs:
+    #     cv2.rectangle(img, rect[0], rect[1], (255,0,0), 1) 
+    # cv2.imwrite("output/rects.jpg", img)       
+
+def draw_text_rects(img, item_pairs, text_height, text_width=None, text="test"):
     font = ImageFont.truetype("simsun.ttf", size=16, encoding="utf-8")
     img_pil = Image.fromarray(img)
     draw = ImageDraw.Draw(img_pil)
-    # draw.text((50, 80),  "端午节就要到了。。。", font = font, fill = (b, g, r, a))
+    
     for name, rect in item_pairs.items():
         # cv2.rectangle(img, rect[0], rect[1], (255,0,0), 1)
         # cv2.putText(img,  text, (rect[0][0], rect[0][1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,0), 1, cv2.LINE_AA)
@@ -122,8 +142,8 @@ def draw_text(img, item_pairs, text_height, text_width=None, text="test"):
 # 读入文件
 orig_path = "input/test.jpg"
 mark_path = "input/test_mark.jpg"
-img_orig = cv2.imread("input/test.jpg")
-img_mark = cv2.imread("input/test_mark.jpg")
+img_orig = cv2.imread(orig_path)
+img_mark = cv2.imread(mark_path)
 
 # 预处理
 abs_substract = get_abssub(img_mark, img_orig)
@@ -135,21 +155,23 @@ rects = detect_squares(abs_substract)
 # for rect in rects:
 #         cv2.rectangle(img_orig, rect[0], rect[1], (0,0,255), 1)
 
+# 生成labels
+gen_all_labels(labels=["容器","电子设备","电池","雨伞", "管制器具"], size=17, fill=(255,255,255,255))
+
 # 找文字        
-icon = cv2.imread("icons/rongqi.png")
-locations = get_text_pos(name="容器", icon=icon, target=sharp_gray)
+label = "容器"
+icon = cv2.imread("icons/%s.png"%label)
+locations = get_text_pos(name=label, icon=icon, target=sharp_gray, threshold=0.35)
 print(locations)
 
 # 匹配文字和框
 item_pairs = match_rect_text(rect_locs=rects, item_locs=locations, item_height=40)
 
-cv2.imshow("sharp", sharp)
-cv2.imshow("sharp_gray", sharp_gray)
-cv2.imshow("img_mark", img_mark)
+# cv2.imshow("sharp", sharp)
+# cv2.imshow("sharp_gray", sharp_gray)
+# cv2.imshow("img_mark", img_mark)
 
-cv2.waitKey(0)
-# # embed()
-cv2.destroyAllWindows()
+# cv2.waitKey(0);cv2.destroyAllWindows()
 
 # 输出到output
 cv2.imwrite("output/sharp.jpg", sharp)
@@ -157,8 +179,10 @@ cv2.imwrite("output/sharp_gray.jpg", sharp_gray)
 print("rect locations:", rects)
 print("text locations:", locations)
 print(item_pairs)
-draw_text(img_orig, item_pairs=item_pairs, text_height=16)
+
+draw_text_rects(img_orig, item_pairs=item_pairs, text_height=16)
 draw_rects(orig_path, rects)
+draw_texts(orig_path, item_locs=locations)
 
 
 # embed()
