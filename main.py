@@ -86,33 +86,30 @@ def get_text_pos(name, icon, target, threshold):
 def get_distance(start, target):
     return math.sqrt((target[0]-start[0])**2 + (target[1]-start[1])**2)
 
-def match_rect_text(rect_locs, item_locs, item_height):
+def match_rect_text(rect_locs, item_locs, item_height, scores):
     flags = [False] * len(rect_locs)
+    min_distance = 10
     pairs = {}
-    for name, loc in item_locs.items():
 
-        min_distance = 100000
-        min_score = 100000
-        text_point = (loc[0]+item_height, loc[1])
+    for i, (left_point, right) in enumerate(rect_locs):
+        max_score = 0
         select = None
         select_point = None
-        for i, (left_point, right) in enumerate(rect_locs):
+        for name, loc in item_locs.items():
             if flags[i]:
-                continue            
+                continue        
+            text_point = (loc[0], loc[1]+item_height)    
             distance = get_distance(text_point, left_point)
-            if distance<min_distance:
-                min_distance = distance
+            if distance<min_distance and scores[name]>max_score:
+                print(distance)
+                max_score = scores[name]
                 select_point = [left_point, right]
-                select = i
+                select = name                
             # if distance<30 and score
-            
-
-        # print(min_distance, select)
         # print(name, select_point)
         # print(flags)
-        if select_point is not None and min_distance<30:
-            flags[select] = True
-            pairs[name] = select_point
+        if select_point is not None:
+            pairs[select] = select_point
         
     return pairs
 
@@ -147,6 +144,8 @@ def draw_text_rects(img, item_pairs, text_height, text_width=None, text="test"):
 
 
 # 读入文件
+# orig_path = "input/复杂/2/_20220901084715808.jpg"
+# mark_path = "input/复杂/2/_202209201084715808.jpg"
 orig_path = "input/test.jpg"
 mark_path = "input/test_mark.jpg"
 img_orig = cv2.imread(orig_path)
@@ -163,7 +162,7 @@ rects = detect_squares(abs_substract)
 #         cv2.rectangle(img_orig, rect[0], rect[1], (0,0,255), 1)
 
 # 生成labels
-labels = ["容器","电子设备","电池", "管制器具"]
+labels = ["电子设备","电池", "管制器具", "容器", "雨伞","压力容器","火种","食品"]
 gen_all_labels(labels=labels, size=17, fill=(255,255,255,255))
 
 # 找文字        
@@ -173,11 +172,7 @@ gen_all_labels(labels=labels, size=17, fill=(255,255,255,255))
 # print("locations:", locations)
 # print("scores",scores)
 
-# label = "容器"
-# icon = cv2.imread("icons/%s.png"%label)
-# locations2, scores2 = get_text_pos(name=label, icon=icon, target=sharp_gray, threshold=0.35)
-# print("locations:",locations2)
-# print("scores:",scores2)
+
 all_scores = {}
 all_locations = {}
 for label in labels:
@@ -187,12 +182,15 @@ for label in labels:
     all_scores.update(scores)
     all_locations.update(locations)
 
+label = "容器"
+icon = cv2.imread("icons/%s.png"%label)
+locations, scores = get_text_pos(name=label, icon=icon, target=sharp_gray, threshold=0.35)
 print("locations:",all_locations)
 print("scores:",all_scores)
 
 
 # 匹配文字和框
-item_pairs = match_rect_text(rect_locs=rects, item_locs=locations, item_height=40)
+item_pairs = match_rect_text(rect_locs=rects, item_locs=all_locations, item_height=17, scores=all_scores)
 
 # cv2.imshow("sharp", sharp)
 # cv2.imshow("sharp_gray", sharp_gray)
