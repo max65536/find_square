@@ -8,7 +8,7 @@ from PIL import ImageFont, ImageDraw, Image
 from gen_cn import gen_all_labels
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.WARN, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 def get_gray(img):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -37,7 +37,7 @@ def match_text(icon, target, threshold, redundent=5):
     # 使用模板匹配功能进行匹配
     result = cv2.matchTemplate(target, icon, cv2.TM_CCOEFF_NORMED)
     cv2.imwrite("tmp/text_recog.jpg", result * 255)
-    logging.info("max recog:", result.max())
+    logging.info("max recog:"+str(result.max()))
     # cv2.imshow("text_result", result)
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
 
@@ -56,7 +56,9 @@ def match_text(icon, target, threshold, redundent=5):
     logging.info("max_val: " +  str(max_val))
     logging.info("threshold: " +  str(threshold))
     for other_loc in zip(*locations[::-1]):
-        logging.info(str(temp_loc)+'  '+str(other_loc))
+        # logging.info(str(temp_loc)+'  '+str(other_loc))
+        # if result[other_loc[0]][other_loc[1]]<threshold:
+        #     continue
         if (temp_loc[0]+5<other_loc[0])or(temp_loc[1]+5<other_loc[1]):
             numOfloc = numOfloc + 1
             temp_loc = other_loc
@@ -66,17 +68,20 @@ def match_text(icon, target, threshold, redundent=5):
     # print("new_locations:", new_locations)   
     cv2.imwrite("tmp/all_texts.jpg", img_mark)
     logging.info("new text locations" + str(new_locations))
-    return new_locations
+    return new_locations, result
 
 def get_text_pos(name, icon, target, threshold):
     # 返回的是左上角的坐标
     icon_gray = get_gray(icon)
     cv2.imwrite("tmp/gray_icon.png",icon_gray)
-    locations = match_text(icon=icon_gray, target=target, threshold=threshold)
+    locations, result = match_text(icon=icon_gray, target=target, threshold=threshold)
     item_locs = {}
+    scores = {}
     for i, loc in enumerate(locations):
         item_locs["%s_%d"%(name, i+1)] = loc
-    return item_locs
+        scores["%s_%d"%(name, i+1)] = result[loc[1]][loc[0]]
+    # embed()
+    return item_locs, scores
 
 def get_distance(start, target):
     return math.sqrt((target[0]-start[0])**2 + (target[1]-start[1])**2)
@@ -87,11 +92,11 @@ def match_rect_text(rect_locs, item_locs, item_height):
     for name, loc in item_locs.items():
 
         min_distance = 100000
+        min_score = 100000
         text_point = (loc[0]+item_height, loc[1])
         select = None
         select_point = None
         for i, (left_point, right) in enumerate(rect_locs):
-            # print(i)
             if flags[i]:
                 continue            
             distance = get_distance(text_point, left_point)
@@ -99,11 +104,13 @@ def match_rect_text(rect_locs, item_locs, item_height):
                 min_distance = distance
                 select_point = [left_point, right]
                 select = i
+            # if distance<30 and score
+            
 
         # print(min_distance, select)
         # print(name, select_point)
         # print(flags)
-        if select_point is not None:
+        if select_point is not None and min_distance<30:
             flags[select] = True
             pairs[name] = select_point
         
@@ -156,13 +163,33 @@ rects = detect_squares(abs_substract)
 #         cv2.rectangle(img_orig, rect[0], rect[1], (0,0,255), 1)
 
 # 生成labels
-gen_all_labels(labels=["容器","电子设备","电池","雨伞", "管制器具"], size=17, fill=(255,255,255,255))
+labels = ["容器","电子设备","电池", "管制器具"]
+gen_all_labels(labels=labels, size=17, fill=(255,255,255,255))
 
 # 找文字        
-label = "容器"
-icon = cv2.imread("icons/%s.png"%label)
-locations = get_text_pos(name=label, icon=icon, target=sharp_gray, threshold=0.35)
-print(locations)
+# label = "雨伞"
+# icon = cv2.imread("icons/%s.png"%label)
+# locations, scores  = get_text_pos(name=label, icon=icon, target=sharp_gray, threshold=0.35)
+# print("locations:", locations)
+# print("scores",scores)
+
+# label = "容器"
+# icon = cv2.imread("icons/%s.png"%label)
+# locations2, scores2 = get_text_pos(name=label, icon=icon, target=sharp_gray, threshold=0.35)
+# print("locations:",locations2)
+# print("scores:",scores2)
+all_scores = {}
+all_locations = {}
+for label in labels:
+    icon = cv2.imread("icons/%s.png"%label)
+    locations, scores = get_text_pos(name=label, icon=icon, target=sharp_gray, threshold=0.35)  
+    # for label, loc in locations.items():        
+    all_scores.update(scores)
+    all_locations.update(locations)
+
+print("locations:",all_locations)
+print("scores:",all_scores)
+
 
 # 匹配文字和框
 item_pairs = match_rect_text(rect_locs=rects, item_locs=locations, item_height=40)

@@ -10,6 +10,7 @@ def gen_text_png(text, size, fill, out_dir="icons"):
 
     ## Use simsum.ttc to write Chinese.
     fontpath = r"fangzhengjunhei.ttf" # <== 这里是宋体路径 
+    # fontpath = r"fangzhengpixel16.ttf" # <== 这里是宋体路径 
     # embed()
     font = ImageFont.truetype(fontpath, size=size, encoding="utf-8")
     img_pil = Image.fromarray(img)
